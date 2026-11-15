@@ -2,9 +2,11 @@ import asyncio
 import random
 import logging
 from dataclasses import dataclass, field
-import numpy as np
 
 logger = logging.getLogger(__name__)
+
+def clip_val(val: float, min_val: float, max_val: float) -> float:
+    return max(min_val, min(val, max_val))
 
 @dataclass
 class CrewBaseline:
@@ -115,24 +117,24 @@ def generate_tick(crew_id: str, radiation_multiplier: float = 1.0) -> dict:
             state.scenario = None
             state.scenario_tick = 0
     else:
-        curr["heart_rate"] = float(round(np.clip(
-            curr["heart_rate"] + np.random.normal(0, 0.5), 50, 180
+        curr["heart_rate"] = float(round(clip_val(
+            curr["heart_rate"] + random.gauss(0, 0.5), 50, 180
         ), 1))
-        curr["spo2"] = float(round(np.clip(
-            curr["spo2"] + np.random.normal(0, 0.1), 85, 100
+        curr["spo2"] = float(round(clip_val(
+            curr["spo2"] + random.gauss(0, 0.1), 85, 100
         ), 1))
-        curr["temperature"] = float(round(np.clip(
-            curr["temperature"] + np.random.normal(0, 0.04), 35.0, 42.0
+        curr["temperature"] = float(round(clip_val(
+            curr["temperature"] + random.gauss(0, 0.04), 35.0, 42.0
         ), 2))
-        curr["radiation_dose"] = float(round(np.clip(
-            (curr["radiation_dose"] + np.random.normal(0, 0.8)) * radiation_multiplier,
+        curr["radiation_dose"] = float(round(clip_val(
+            (curr["radiation_dose"] + random.gauss(0, 0.8)) * radiation_multiplier,
             10, 1500
         ), 1))
-        curr["sleep_hours"] = float(round(np.clip(
-            curr["sleep_hours"] + np.random.normal(0, 0.02), 0, 12
+        curr["sleep_hours"] = float(round(clip_val(
+            curr["sleep_hours"] + random.gauss(0, 0.02), 0, 12
         ), 1))
-        curr["stress_index"] = float(round(np.clip(
-            curr["stress_index"] + np.random.normal(0, 0.01), 0.0, 1.0
+        curr["stress_index"] = float(round(clip_val(
+            curr["stress_index"] + random.gauss(0, 0.01), 0.0, 1.0
         ), 2))
 
     state.current = curr
