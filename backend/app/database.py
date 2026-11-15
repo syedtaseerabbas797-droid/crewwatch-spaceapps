@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 # Neon connection string normalization for psycopg3 async driver
 db_url = settings.DATABASE_URL
 
-# Convert any postgres:// or postgresql:// to postgresql+psycopg://  (psycopg3 async)
+# Convert any postgres:// or postgresql:// to postgresql+psycopg:// (psycopg3 async)
 if db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql+psycopg://", 1)
 elif db_url.startswith("postgresql+asyncpg://"):
@@ -17,9 +17,15 @@ elif db_url.startswith("postgresql+asyncpg://"):
 elif db_url.startswith("postgresql://") and not db_url.startswith("postgresql+psycopg://"):
     db_url = db_url.replace("postgresql://", "postgresql+psycopg://", 1)
 
+# psycopg3 uses 'sslmode=require', NOT 'ssl=require' (asyncpg syntax)
+# Replace ?ssl=require or &ssl=require with ?sslmode=require
+db_url = re.sub(r'[?&]ssl=require', '', db_url)
+
 # Remove channel_binding parameter if present
-if "channel_binding=" in db_url:
-    db_url = re.sub(r'[&?]channel_binding=[^&]+', '', db_url)
+db_url = re.sub(r'[&?]channel_binding=[^&]+', '', db_url)
+
+# Strip trailing ? or & if URL params were fully removed
+db_url = db_url.rstrip('?').rstrip('&')
 
 engine = create_async_engine(
     db_url,
@@ -28,6 +34,9 @@ engine = create_async_engine(
     max_overflow=10,
     pool_timeout=30,
     pool_recycle=1800,
+    connect_args={
+        "sslmode": "require",  # psycopg3 correct SSL param for Neon.tech
+    },
 )
 
 AsyncSessionLocal = async_sessionmaker(
