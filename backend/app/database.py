@@ -1,20 +1,24 @@
 import logging
+import re
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
 from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Neon connection string normalization for asyncpg
+# Neon connection string normalization for psycopg3 async driver
 db_url = settings.DATABASE_URL
-if db_url.startswith("postgres://"):
-    db_url = db_url.replace("postgres://", "postgresql+asyncpg://", 1)
-elif db_url.startswith("postgresql://") and not db_url.startswith("postgresql+asyncpg://"):
-    db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
-# Remove channel_binding parameter if present as asyncpg handles SSL directly
+# Convert any postgres:// or postgresql:// to postgresql+psycopg://  (psycopg3 async)
+if db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql+psycopg://", 1)
+elif db_url.startswith("postgresql+asyncpg://"):
+    db_url = db_url.replace("postgresql+asyncpg://", "postgresql+psycopg://", 1)
+elif db_url.startswith("postgresql://") and not db_url.startswith("postgresql+psycopg://"):
+    db_url = db_url.replace("postgresql://", "postgresql+psycopg://", 1)
+
+# Remove channel_binding parameter if present
 if "channel_binding=" in db_url:
-    import re
     db_url = re.sub(r'[&?]channel_binding=[^&]+', '', db_url)
 
 engine = create_async_engine(
